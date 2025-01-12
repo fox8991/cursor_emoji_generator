@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { getSiteURL } from "@/utils/url";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -52,7 +53,7 @@ export default function LoginPage() {
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${location.origin}/auth/confirm?next=/update-password`,
+        redirectTo: `${getSiteURL()}/auth/confirm?next=/update-password`,
       });
 
       if (error) {

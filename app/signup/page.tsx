@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { getSiteURL } from "@/utils/url";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${location.origin}/auth/confirm`,
+          emailRedirectTo: `${getSiteURL()}/auth/confirm`,
         },
       });
 

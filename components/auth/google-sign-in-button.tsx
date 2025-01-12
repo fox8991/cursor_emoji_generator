@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/client";
+import { getSiteURL } from "@/utils/url";
 
 export function GoogleSignInButton() {
   const supabase = createClient();
@@ -10,7 +11,7 @@ export function GoogleSignInButton() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: `${getSiteURL()}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
