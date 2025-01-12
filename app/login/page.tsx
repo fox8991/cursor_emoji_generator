@@ -52,8 +52,11 @@ export default function LoginPage() {
   const handleForgotPassword = async () => {
     setIsResettingPassword(true);
     try {
+      const redirectUrl = `${getSiteURL()}/auth/confirm?next=/update-password`;
+      console.log('Password Reset: Using redirect URL -', redirectUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteURL()}/auth/confirm?next=/update-password`,
+        redirectTo: redirectUrl,
       });
 
       if (error) {

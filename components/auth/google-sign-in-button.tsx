@@ -8,10 +8,13 @@ export function GoogleSignInButton() {
   const supabase = createClient();
 
   const handleSignIn = async () => {
+    const redirectUrl = `${getSiteURL()}/auth/callback`;
+    console.log('Google Sign-in: Using redirect URL -', redirectUrl);
+    
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${getSiteURL()}/auth/callback`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

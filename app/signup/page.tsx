@@ -22,15 +22,33 @@ export default function SignUpPage() {
     setMessage(null);
     
     try {
+      const redirectUrl = getSiteURL();
+      console.log('Signup: Using redirect URL -', redirectUrl);
+      console.log('Environment:', {
+        NODE_ENV: process.env.NODE_ENV,
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL
+      });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${getSiteURL()}/auth/confirm`,
+          emailRedirectTo: redirectUrl,
         },
       });
 
-      console.log('Supabase response:', { data, error });
+      console.log('Supabase signup response:', {
+        data: {
+          user: data?.user ? {
+            id: data.user.id,
+            email: data.user.email,
+            emailConfirmedAt: data.user.email_confirmed_at,
+            confirmationSentAt: data.user.confirmation_sent_at
+          } : null,
+          session: data?.session ? 'Session exists' : 'No session'
+        },
+        error
+      });
 
       if (error) {
         throw error;
