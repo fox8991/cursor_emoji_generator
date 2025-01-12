@@ -11,6 +11,8 @@ import { getSiteURL } from "@/utils/url";
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
@@ -21,33 +23,31 @@ export default function SignUpPage() {
     setError(null);
     setMessage(null);
     
+    // Password validation
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    
     try {
       const redirectUrl = getSiteURL();
-      console.log('Signup: Using redirect URL -', redirectUrl);
-      console.log('Environment:', {
-        NODE_ENV: process.env.NODE_ENV,
-        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL
-      });
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
+          ...(name.trim() && {
+            data: {
+              full_name: name.trim(),
+            },
+          }),
         },
-      });
-
-      console.log('Supabase signup response:', {
-        data: {
-          user: data?.user ? {
-            id: data.user.id,
-            email: data.user.email,
-            emailConfirmedAt: data.user.email_confirmed_at,
-            confirmationSentAt: data.user.confirmation_sent_at
-          } : null,
-          session: data?.session ? 'Session exists' : 'No session'
-        },
-        error
       });
 
       if (error) {
@@ -77,11 +77,20 @@ export default function SignUpPage() {
         <form onSubmit={handleSignUp} className="space-y-4">
           <div className="space-y-2">
             <Input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-zinc-900 border-zinc-800"
+              autoComplete="name"
+            />
+            <Input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-zinc-900 border-zinc-800"
+              autoComplete="email"
             />
             <Input
               type="password"
@@ -89,6 +98,15 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-zinc-900 border-zinc-800"
+              autoComplete="new-password"
+            />
+            <Input
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="bg-zinc-900 border-zinc-800"
+              autoComplete="new-password"
             />
           </div>
 

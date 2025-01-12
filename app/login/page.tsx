@@ -87,6 +87,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-zinc-900 border-zinc-800"
+              autoComplete="email"
             />
             <Input
               type="password"
@@ -94,6 +95,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-zinc-900 border-zinc-800"
+              autoComplete="current-password"
             />
             <Button
               type="button"
