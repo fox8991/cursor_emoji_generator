@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { getSiteURL } from "@/utils/url";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -21,13 +23,13 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    setIsLoading(true);
+    
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      console.log('Sign in error:', error);
 
       if (error) {
         if (error.message === 'Invalid login credentials') {
@@ -41,6 +43,8 @@ export default function LoginPage() {
       router.refresh();
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,8 +120,9 @@ export default function LoginPage() {
             <div className="text-green-500 text-sm text-center">{message}</div>
           )}
 
-          <Button type="submit" className="w-full">
-            Sign in
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
 

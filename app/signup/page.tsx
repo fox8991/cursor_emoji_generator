@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { getSiteURL } from "@/utils/url";
+import { Loader2 } from "lucide-react";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -22,15 +24,18 @@ export default function SignUpPage() {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    setIsLoading(true);
     
     // Password validation
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
+      setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      setIsLoading(false);
       return;
     }
     
@@ -63,6 +68,8 @@ export default function SignUpPage() {
       setMessage("Check your email for a confirmation link.");
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -124,8 +131,9 @@ export default function SignUpPage() {
             </div>
           )}
 
-          <Button type="submit" className="w-full">
-            Sign up
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? "Creating account..." : "Sign up"}
           </Button>
         </form>
 
