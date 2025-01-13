@@ -16,17 +16,18 @@ interface GeneratedEmoji {
   storagePath: string;
   prompt: string;
   liked?: boolean;
+  id: string;
+  likesCount?: number;
 }
 
 interface EmojiCardProps {
   emoji: GeneratedEmoji;
-  index: number;
   onDownload: (storagePath: string, prompt: string) => Promise<void>;
-  onToggleLike: (index: number) => void;
+  onToggleLike: (emojiId: string) => Promise<void>;
   getEmojiUrl: (storagePath: string) => Promise<string>;
 }
 
-function EmojiCard({ emoji, index, onDownload, onToggleLike, getEmojiUrl }: EmojiCardProps) {
+function EmojiCard({ emoji, onDownload, onToggleLike, getEmojiUrl }: EmojiCardProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ function EmojiCard({ emoji, index, onDownload, onToggleLike, getEmojiUrl }: Emoj
               className={`h-8 w-8 text-white hover:text-white hover:bg-white/20 ${
                 emoji.liked ? 'text-red-500 hover:text-red-500' : ''
               }`}
-              onClick={() => onToggleLike(index)}
+              onClick={() => onToggleLike(emoji.id)}
             >
               <Heart className={`h-4 w-4 ${emoji.liked ? 'fill-current' : ''}`} />
             </Button>
@@ -90,6 +91,7 @@ interface EmojiData {
   created_at: string;
   user_id: string;
   likes_count: number;
+  user_likes: { user_id: string }[] | null;
 }
 
 const supabase = createClient();
@@ -126,9 +128,11 @@ function useEmojiState() {
       }
 
       const newEmojis = result.emojis.map((emoji: EmojiData) => ({
+        id: emoji.id,
         storagePath: emoji.storage_path,
         prompt: emoji.prompt,
-        liked: false
+        liked: Boolean(emoji.user_likes?.length),
+        likesCount: emoji.likes_count
       }));
 
       setUserEmojis(prev => append ? [...prev, ...newEmojis] : newEmojis);
@@ -266,10 +270,38 @@ export function MainContent() {
     }
   };
 
-  const toggleLike = (index: number) => {
-    setRecentEmojis(prev => prev.map((emoji, i) => 
-      i === index ? { ...emoji, liked: !emoji.liked } : emoji
-    ));
+  const toggleLike = async (emojiId: string) => {
+    try {
+      const response = await fetch("/api/emojis/like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ emojiId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to toggle like");
+      }
+
+      // Update both recent and user emojis
+      setUserEmojis(prev => prev.map(emoji => 
+        emoji.id === emojiId 
+          ? { ...emoji, liked: result.liked, likesCount: result.likesCount }
+          : emoji
+      ));
+
+      setRecentEmojis(prev => prev.map(emoji => 
+        emoji.id === emojiId 
+          ? { ...emoji, liked: result.liked, likesCount: result.likesCount }
+          : emoji
+      ));
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      setError(err instanceof Error ? err.message : "Failed to toggle like");
+    }
   };
 
   const handleGenerateEmoji = async (prompt: string): Promise<void> => {
@@ -296,13 +328,21 @@ export function MainContent() {
       setCurrentEmoji(blobUrl);
       
       // Add to recent emojis (session only)
-      setRecentEmojis(prev => [{storagePath: result.storagePath, prompt}, ...prev].slice(0, 12));
+      setRecentEmojis(prev => [{
+        id: result.emojiId,
+        storagePath: result.storagePath,
+        prompt,
+        liked: false,
+        likesCount: 0
+      }, ...prev].slice(0, 12));
       
       // Add to user emojis (persisted)
       setUserEmojis((prev: GeneratedEmoji[]) => [{
+        id: result.emojiId,
         storagePath: result.storagePath,
         prompt,
-        liked: false
+        liked: false,
+        likesCount: 0
       }, ...prev]);
       
     } catch (err) {
@@ -390,7 +430,7 @@ export function MainContent() {
                 className="h-10 w-10 text-white hover:text-white hover:bg-white/20"
                 onClick={() => {
                   const index = recentEmojis.findIndex(emoji => emoji.storagePath === currentEmoji);
-                  if (index !== -1) toggleLike(index);
+                  if (index !== -1) toggleLike(recentEmojis[index].id);
                 }}
               >
                 <Heart className={`h-5 w-5 ${recentEmojis.find(emoji => emoji.storagePath === currentEmoji)?.liked ? 'fill-current text-red-500' : ''}`} />
@@ -415,11 +455,10 @@ export function MainContent() {
         <section className="max-w-4xl mx-auto mt-12">
           <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {userEmojis.map((emoji, index) => (
+            {userEmojis.map((emoji) => (
               <EmojiCard
                 key={emoji.storagePath}
                 emoji={emoji}
-                index={index}
                 onDownload={handleDownload}
                 onToggleLike={toggleLike}
                 getEmojiUrl={getEmojiUrl}
@@ -444,11 +483,10 @@ export function MainContent() {
         <section className="max-w-4xl mx-auto mt-12">
           <h2 className="text-xl font-semibold mb-4">Recent</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {recentEmojis.map((emoji, index) => (
+            {recentEmojis.map((emoji) => (
               <EmojiCard
-                key={index}
+                key={emoji.id}
                 emoji={emoji}
-                index={index}
                 onDownload={handleDownload}
                 onToggleLike={toggleLike}
                 getEmojiUrl={getEmojiUrl}

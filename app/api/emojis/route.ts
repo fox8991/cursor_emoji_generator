@@ -18,11 +18,17 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch paginated emojis
+    // Fetch paginated emojis with like status
     const { data: emojis, error, count } = await supabase
       .from('emojis')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        user_likes!left (
+          user_id
+        )
+      `, { count: 'exact' })
       .eq('user_id', user.id)
+      .eq('user_likes.user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
