@@ -30,10 +30,14 @@ interface EmojiCardProps {
 
 function EmojiCard({ emoji, onDownload, onToggleLike, getEmojiUrl }: EmojiCardProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getEmojiUrl(emoji.storagePath)
-      .then(setBlobUrl)
+      .then((url) => {
+        setBlobUrl(url);
+        setIsLoading(false);
+      })
       .catch(console.error);
   }, [emoji.storagePath, getEmojiUrl]);
 
@@ -42,6 +46,14 @@ function EmojiCard({ emoji, onDownload, onToggleLike, getEmojiUrl }: EmojiCardPr
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
   }, [blobUrl]);
+
+  if (isLoading) {
+    return (
+      <Card className="bg-zinc-800/50 rounded-xl p-4 animate-pulse">
+        <div className="w-full h-24 bg-zinc-700 rounded-lg" />
+      </Card>
+    );
+  }
 
   if (!blobUrl) return null;
 
@@ -101,7 +113,6 @@ const supabase = createClient();
 
 function useEmojiState() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingUserEmojis, setIsLoadingUserEmojis] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentEmoji, setCurrentEmoji] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,8 +130,6 @@ function useEmojiState() {
     try {
       if (append) {
         setIsLoadingMore(true);
-      } else {
-        setIsLoadingUserEmojis(true);
       }
 
       const response = await fetch(`/api/emojis?page=${page}`);
@@ -138,7 +147,11 @@ function useEmojiState() {
         likesCount: emoji.likes_count
       }));
 
-      setUserEmojis(prev => append ? [...prev, ...newEmojis] : newEmojis);
+      if (append) {
+        setUserEmojis(prev => [...prev, ...newEmojis]);
+      } else {
+        setUserEmojis(newEmojis);
+      }
       setHasMore(result.hasMore);
       setCurrentPage(page);
     } catch (err) {
@@ -146,7 +159,6 @@ function useEmojiState() {
       setError(err instanceof Error ? err.message : 'Failed to fetch emojis');
     } finally {
       setIsLoadingMore(false);
-      setIsLoadingUserEmojis(false);
     }
   }, [user]);
 
@@ -188,7 +200,6 @@ function useEmojiState() {
   return {
     isLoading,
     setIsLoading,
-    isLoadingUserEmojis,
     isLoadingMore,
     currentEmoji,
     setCurrentEmoji,
@@ -223,7 +234,6 @@ export function AuthSection() {
 export function MainContent() {
   const {
     isLoading,
-    isLoadingUserEmojis,
     isLoadingMore,
     setIsLoading,
     currentEmoji,
@@ -457,18 +467,7 @@ export function MainContent() {
       </div>
     )}
 
-    {isLoadingUserEmojis ? (
-      <section className="max-w-5xl mx-auto mt-16">
-        <h2 className="text-2xl font-semibold mb-6 text-zinc-200">Your Emojis</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {[...Array(10)].map((_, i) => (
-            <Card key={i} className="bg-zinc-800/50 rounded-xl p-4 animate-pulse">
-              <div className="w-full h-24 bg-zinc-700 rounded-lg" />
-            </Card>
-          ))}
-        </div>
-      </section>
-    ) : userEmojis.length > 0 && (
+    {userEmojis.length > 0 && (
       <section className="max-w-5xl mx-auto mt-16">
         <h2 className="text-2xl font-semibold mb-6 text-zinc-200">Your Emojis</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">

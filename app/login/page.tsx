@@ -92,7 +92,7 @@ export default function LoginPage() {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 placeholder-zinc-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
                   autoComplete="email"
                 />
                 <Input
@@ -100,7 +100,7 @@ export default function LoginPage() {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 placeholder-zinc-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
                   autoComplete="current-password"
                 />
                 <Button
