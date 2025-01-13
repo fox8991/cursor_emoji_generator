@@ -3,7 +3,7 @@ import { AuthSection, MainContent } from "@/components/client-page";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white">
       <header className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎨</span>
@@ -16,7 +16,9 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <MainContent />
+      <main>
+        <MainContent />
+      </main>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export default function AuthErrorPage() {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white flex items-center">
       <div className="m-auto w-full max-w-md px-4">
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="space-y-1">

@@ -4,7 +4,8 @@ import React, { useRef, useEffect, useCallback } from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Heart } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card"
+import { Download, Heart, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { UserMenu } from "@/components/user-menu";
 import { useRouter } from "next/navigation";
@@ -377,138 +378,140 @@ export function MainContent() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
-        <h1 className="text-4xl font-bold">AI Emojis</h1>
-        <p className="text-gray-400">
-          {userEmojis.length + recentEmojis.length} emojis generated and counting!
-        </p>
-      </div>
+    <main className="container mx-auto px-4 py-16 min-h-screen">
+    <div className="max-w-3xl mx-auto text-center space-y-6 mb-16">
+      <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">AI Emojis</h1>
+      <p className="text-zinc-400 text-lg">
+        {userEmojis.length + recentEmojis.length} emojis generated and counting!
+      </p>
+    </div>
 
-      <form onSubmit={handleSubmit} className="max-w-xl mx-auto mb-16">
-        <div className="relative">
+    <Card className="max-w-xl mx-auto mb-16 bg-zinc-800/50 border-zinc-700">
+      <CardContent className="p-2">
+        <form onSubmit={handleSubmit} className="flex items-center">
           <Input
             name="prompt"
-            className="w-full bg-zinc-900 border-zinc-800 rounded-xl py-6 pl-4 pr-12 text-lg"
-            placeholder="cat"
+            className="flex-grow bg-transparent border-none text-lg placeholder-zinc-500 focus-visible:ring-0 text-white caret-white"
+            placeholder="Describe your emoji..."
             disabled={isLoading}
           />
-          <button 
+          <Button 
             type="submit" 
-            className="absolute right-3 top-1/2 -translate-y-1/2"
+            className="ml-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
             disabled={isLoading}
           >
-            ↵
-          </button>
-        </div>
-      </form>
+            {isLoading ? 'Generating...' : <ArrowRight className="h-5 w-5" />}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
 
-      {error && (
-        <div className="text-red-500 text-center mb-8">{error}</div>
-      )}
+    {error && (
+      <div className="text-red-500 text-center mb-8 bg-red-500/10 p-4 rounded-lg">{error}</div>
+    )}
 
-      {isLoading && (
-        <div className="flex justify-center mb-8">
-          <div className="animate-pulse bg-zinc-800 w-32 h-32 rounded-xl" />
-        </div>
-      )}
+    {isLoading && (
+      <div className="flex justify-center mb-12">
+        <div className="animate-pulse bg-zinc-800 w-48 h-48 rounded-2xl" />
+      </div>
+    )}
 
-      {currentEmoji && !isLoading && (
-        <div className="flex justify-center mb-12">
-          <div className="relative group">
-            <Image
-              src={currentEmoji}
-              alt="Generated emoji"
-              width={196}
-              height={196}
-              className="rounded-xl"
-              unoptimized
-              onError={() => {
-                console.error('Image failed to load:', currentEmoji);
-                setError('Failed to load the generated image');
-                setCurrentEmoji(null);
+    {currentEmoji && !isLoading && (
+      <div className="flex justify-center mb-16">
+        <div className="relative group">
+          <Image
+            src={currentEmoji}
+            alt="Generated emoji"
+            width={256}
+            height={256}
+            className="rounded-2xl shadow-lg"
+            unoptimized
+            onError={() => {
+              console.error('Image failed to load:', currentEmoji);
+              setError('Failed to load the generated image');
+              setCurrentEmoji(null);
+            }}
+          />
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 rounded-2xl">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-12 w-12 text-white hover:text-white hover:bg-white/20 rounded-full"
+              onClick={() => handleDownload(recentEmojis[0].storagePath, "current-emoji")}
+            >
+              <Download className="h-6 w-6" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-12 w-12 text-white hover:text-white hover:bg-white/20 rounded-full"
+              onClick={() => {
+                const index = recentEmojis.findIndex(emoji => emoji.storagePath === currentEmoji);
+                if (index !== -1) toggleLike(recentEmojis[index].id);
               }}
-            />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 text-white hover:text-white hover:bg-white/20"
-                onClick={() => handleDownload(recentEmojis[0].storagePath, "current-emoji")}
-              >
-                <Download className="h-5 w-5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 text-white hover:text-white hover:bg-white/20"
-                onClick={() => {
-                  const index = recentEmojis.findIndex(emoji => emoji.storagePath === currentEmoji);
-                  if (index !== -1) toggleLike(recentEmojis[index].id);
-                }}
-              >
-                <Heart className={`h-5 w-5 ${recentEmojis.find(emoji => emoji.storagePath === currentEmoji)?.liked ? 'fill-current text-red-500' : ''}`} />
-              </Button>
-            </div>
+            >
+              <Heart className={`h-6 w-6 ${recentEmojis.find(emoji => emoji.storagePath === currentEmoji)?.liked ? 'fill-current text-red-500' : ''}`} />
+            </Button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {isLoadingUserEmojis ? (
-        <section className="max-w-4xl mx-auto mt-12">
-          <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-zinc-900 rounded-xl p-3 animate-pulse">
-                <div className="w-16 h-16 bg-zinc-800 rounded-lg" />
-              </div>
-            ))}
+    {isLoadingUserEmojis ? (
+      <section className="max-w-5xl mx-auto mt-16">
+        <h2 className="text-2xl font-semibold mb-6 text-zinc-200">Your Emojis</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {[...Array(10)].map((_, i) => (
+            <Card key={i} className="bg-zinc-800/50 rounded-xl p-4 animate-pulse">
+              <div className="w-full h-24 bg-zinc-700 rounded-lg" />
+            </Card>
+          ))}
+        </div>
+      </section>
+    ) : userEmojis.length > 0 && (
+      <section className="max-w-5xl mx-auto mt-16">
+        <h2 className="text-2xl font-semibold mb-6 text-zinc-200">Your Emojis</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {userEmojis.map((emoji) => (
+            <EmojiCard
+              key={emoji.storagePath}
+              emoji={emoji}
+              onDownload={handleDownload}
+              onToggleLike={toggleLike}
+              getEmojiUrl={getEmojiUrl}
+            />
+          ))}
+        </div>
+        {hasMore && (
+          <div className="mt-10 text-center">
+            <Button 
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-2 rounded-full"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? 'Loading...' : 'Load More'}
+            </Button>
           </div>
-        </section>
-      ) : userEmojis.length > 0 && (
-        <section className="max-w-4xl mx-auto mt-12">
-          <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {userEmojis.map((emoji) => (
-              <EmojiCard
-                key={emoji.storagePath}
-                emoji={emoji}
-                onDownload={handleDownload}
-                onToggleLike={toggleLike}
-                getEmojiUrl={getEmojiUrl}
-              />
-            ))}
-          </div>
-          {hasMore && (
-            <div className="mt-8 text-center">
-              <Button 
-                className="bg-zinc-800 hover:bg-zinc-700 text-white"
-                onClick={loadMore}
-                disabled={isLoadingMore}
-              >
-                {isLoadingMore ? 'Loading...' : 'Load More'}
-              </Button>
-            </div>
-          )}
-        </section>
-      )}
+        )}
+      </section>
+    )}
 
-      {recentEmojis.length > 0 && (
-        <section className="max-w-4xl mx-auto mt-12">
-          <h2 className="text-xl font-semibold mb-4">Recent</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {recentEmojis.map((emoji) => (
-              <EmojiCard
-                key={emoji.id}
-                emoji={emoji}
-                onDownload={handleDownload}
-                onToggleLike={toggleLike}
-                getEmojiUrl={getEmojiUrl}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-    </main>
+    {recentEmojis.length > 0 && (
+      <section className="max-w-5xl mx-auto mt-16">
+        <h2 className="text-2xl font-semibold mb-6 text-zinc-200">Recent</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {recentEmojis.map((emoji) => (
+            <EmojiCard
+              key={emoji.id}
+              emoji={emoji}
+              onDownload={handleDownload}
+              onToggleLike={toggleLike}
+              getEmojiUrl={getEmojiUrl}
+            />
+          ))}
+        </div>
+      </section>
+    )}
+  </main>
   );
 } 
