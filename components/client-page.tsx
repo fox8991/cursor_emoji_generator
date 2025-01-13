@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,8 @@ interface EmojiData {
   likes_count: number;
 }
 
+const supabase = createClient();
+
 function useEmojiState() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUserEmojis, setIsLoadingUserEmojis] = useState(false);
@@ -105,9 +107,8 @@ function useEmojiState() {
   const [user, setUser] = useState<User | null>(null);
   const hasFetchedRef = useRef(false);
   const router = useRouter();
-  const supabase = createClient();
 
-  const fetchUserEmojis = async (page: number, append = false) => {
+  const fetchUserEmojis = useCallback(async (page: number, append = false) => {
     if (!user) return;
     
     try {
@@ -140,19 +141,19 @@ function useEmojiState() {
       setIsLoadingMore(false);
       setIsLoadingUserEmojis(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user || hasFetchedRef.current) return;
     hasFetchedRef.current = true;
     fetchUserEmojis(1);
-  }, [user]);
+  }, [user, fetchUserEmojis]);
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
       fetchUserEmojis(currentPage + 1, true);
     }
-  };
+  }, [isLoadingMore, hasMore, currentPage, fetchUserEmojis]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -169,7 +170,7 @@ function useEmojiState() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, []);
 
   return {
     isLoading,
