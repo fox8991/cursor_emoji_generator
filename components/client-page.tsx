@@ -34,11 +34,13 @@ function EmojiCard({ emoji, onDownload, onToggleLike, getEmojiUrl }: EmojiCardPr
     getEmojiUrl(emoji.storagePath)
       .then(setBlobUrl)
       .catch(console.error);
-    
+  }, [emoji.storagePath, getEmojiUrl]);
+
+  useEffect(() => {
     return () => {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [emoji.storagePath, getEmojiUrl]);
+  }, [blobUrl]);
 
   if (!blobUrl) return null;
 
