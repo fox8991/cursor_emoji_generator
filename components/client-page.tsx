@@ -13,16 +13,92 @@ import { User } from "@supabase/supabase-js";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 interface GeneratedEmoji {
-  url: string;
+  storagePath: string;
   prompt: string;
   liked?: boolean;
 }
 
+interface EmojiCardProps {
+  emoji: GeneratedEmoji;
+  index: number;
+  onDownload: (storagePath: string, prompt: string) => Promise<void>;
+  onToggleLike: (index: number) => void;
+  getEmojiUrl: (storagePath: string) => Promise<string>;
+}
+
+function EmojiCard({ emoji, index, onDownload, onToggleLike, getEmojiUrl }: EmojiCardProps) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    getEmojiUrl(emoji.storagePath)
+      .then(setBlobUrl)
+      .catch(console.error);
+    
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [emoji.storagePath, getEmojiUrl]);
+
+  if (!blobUrl) return null;
+
+  return (
+    <div className="bg-zinc-900 rounded-xl p-3 group relative">
+      <div className="flex items-center gap-3">
+        <div className="relative flex-shrink-0">
+          <Image
+            src={blobUrl}
+            alt={emoji.prompt}
+            width={64}
+            height={64}
+            className="rounded-lg"
+            unoptimized
+          />
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-white hover:text-white hover:bg-white/20"
+              onClick={() => onDownload(emoji.storagePath, emoji.prompt)}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`h-8 w-8 text-white hover:text-white hover:bg-white/20 ${
+                emoji.liked ? 'text-red-500 hover:text-red-500' : ''
+              }`}
+              onClick={() => onToggleLike(index)}
+            >
+              <Heart className={`h-4 w-4 ${emoji.liked ? 'fill-current' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-gray-400 line-clamp-2">:{emoji.prompt}:</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface EmojiData {
+  id: string;
+  storage_path: string;
+  prompt: string;
+  visibility: 'public' | 'private';
+  created_at: string;
+  user_id: string;
+  likes_count: number;
+}
+
 function useEmojiState() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingUserEmojis, setIsLoadingUserEmojis] = useState(false);
   const [currentEmoji, setCurrentEmoji] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recentEmojis, setRecentEmojis] = useState<GeneratedEmoji[]>([]);
+  const [userEmojis, setUserEmojis] = useState<GeneratedEmoji[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -44,15 +120,47 @@ function useEmojiState() {
     };
   }, [supabase.auth]);
 
+  useEffect(() => {
+    const fetchUserEmojis = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoadingUserEmojis(true);
+        const response = await fetch('/api/emojis');
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch emojis');
+        }
+
+        setUserEmojis(result.emojis.map((emoji: EmojiData) => ({
+          storagePath: emoji.storage_path,
+          prompt: emoji.prompt,
+          liked: false
+        })));
+      } catch (err) {
+        console.error('Error fetching user emojis:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch emojis');
+      } finally {
+        setIsLoadingUserEmojis(false);
+      }
+    };
+
+    fetchUserEmojis();
+  }, [user]);
+
   return {
     isLoading,
     setIsLoading,
+    isLoadingUserEmojis,
     currentEmoji,
     setCurrentEmoji,
     error,
     setError,
     recentEmojis,
     setRecentEmojis,
+    userEmojis,
+    setUserEmojis,
     user,
     router,
   };
@@ -76,6 +184,7 @@ export function AuthSection() {
 export function MainContent() {
   const {
     isLoading,
+    isLoadingUserEmojis,
     setIsLoading,
     currentEmoji,
     setCurrentEmoji,
@@ -83,12 +192,21 @@ export function MainContent() {
     setError,
     recentEmojis,
     setRecentEmojis,
+    userEmojis,
+    setUserEmojis,
   } = useEmojiState();
 
-  const handleDownload = async (url: string, prompt: string) => {
+  const supabase = createClient();
+
+  const handleDownload = async (storagePath: string, prompt: string) => {
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
+      const { data, error } = await supabase.storage
+        .from('emojis')
+        .download(storagePath);
+
+      if (error) throw error;
+
+      const blob = new Blob([data], { type: 'image/png' });
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -100,6 +218,22 @@ export function MainContent() {
     } catch (err) {
       console.error('Download failed:', err);
       setError('Failed to download emoji');
+    }
+  };
+
+  const getEmojiUrl = async (storagePath: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('emojis')
+        .download(storagePath);
+
+      if (error) throw error;
+
+      const blob = new Blob([data], { type: 'image/png' });
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      console.error('Failed to get emoji:', err);
+      throw err;
     }
   };
 
@@ -129,17 +263,19 @@ export function MainContent() {
         throw new Error(result.error || "Failed to generate emoji");
       }
 
-      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
-        throw new Error("Invalid response format");
-      }
-
-      const imageUrl = result.data[0];
-      if (typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
-        throw new Error("Invalid image URL received");
-      }
-
-      setCurrentEmoji(imageUrl);
-      setRecentEmojis(prev => [{url: imageUrl, prompt}, ...prev].slice(0, 12));
+      const blobUrl = await getEmojiUrl(result.storagePath);
+      setCurrentEmoji(blobUrl);
+      
+      // Add to recent emojis (session only)
+      setRecentEmojis(prev => [{storagePath: result.storagePath, prompt}, ...prev].slice(0, 12));
+      
+      // Add to user emojis (persisted)
+      setUserEmojis((prev: GeneratedEmoji[]) => [{
+        storagePath: result.storagePath,
+        prompt,
+        liked: false
+      }, ...prev]);
+      
     } catch (err) {
       console.error("Error details:", err);
       setError(err instanceof Error ? err.message : "An error occurred while generating the emoji");
@@ -162,7 +298,7 @@ export function MainContent() {
       <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
         <h1 className="text-4xl font-bold">AI Emojis</h1>
         <p className="text-gray-400">
-          {recentEmojis.length} emojis generated and counting!
+          {userEmojis.length + recentEmojis.length} emojis generated and counting!
         </p>
       </div>
 
@@ -203,6 +339,7 @@ export function MainContent() {
               width={196}
               height={196}
               className="rounded-xl"
+              unoptimized
               onError={() => {
                 console.error('Image failed to load:', currentEmoji);
                 setError('Failed to load the generated image');
@@ -214,7 +351,7 @@ export function MainContent() {
                 size="icon"
                 variant="ghost"
                 className="h-10 w-10 text-white hover:text-white hover:bg-white/20"
-                onClick={() => handleDownload(currentEmoji, "current-emoji")}
+                onClick={() => handleDownload(recentEmojis[0].storagePath, "current-emoji")}
               >
                 <Download className="h-5 w-5" />
               </Button>
@@ -223,58 +360,59 @@ export function MainContent() {
                 variant="ghost"
                 className="h-10 w-10 text-white hover:text-white hover:bg-white/20"
                 onClick={() => {
-                  const index = recentEmojis.findIndex(emoji => emoji.url === currentEmoji);
+                  const index = recentEmojis.findIndex(emoji => emoji.storagePath === currentEmoji);
                   if (index !== -1) toggleLike(index);
                 }}
               >
-                <Heart className={`h-5 w-5 ${recentEmojis.find(emoji => emoji.url === currentEmoji)?.liked ? 'fill-current text-red-500' : ''}`} />
+                <Heart className={`h-5 w-5 ${recentEmojis.find(emoji => emoji.storagePath === currentEmoji)?.liked ? 'fill-current text-red-500' : ''}`} />
               </Button>
             </div>
           </div>
         </div>
       )}
 
+      {isLoadingUserEmojis ? (
+        <section className="max-w-4xl mx-auto mt-12">
+          <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-zinc-900 rounded-xl p-3 animate-pulse">
+                <div className="w-16 h-16 bg-zinc-800 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : userEmojis.length > 0 && (
+        <section className="max-w-4xl mx-auto mt-12">
+          <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {userEmojis.map((emoji, index) => (
+              <EmojiCard
+                key={emoji.storagePath}
+                emoji={emoji}
+                index={index}
+                onDownload={handleDownload}
+                onToggleLike={toggleLike}
+                getEmojiUrl={getEmojiUrl}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {recentEmojis.length > 0 && (
-        <section className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-semibold mb-4">Recents</h2>
+        <section className="max-w-4xl mx-auto mt-12">
+          <h2 className="text-xl font-semibold mb-4">Recent</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {recentEmojis.map((emoji, index) => (
-              <div key={index} className="bg-zinc-900 rounded-xl p-3 group relative">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-shrink-0">
-                    <Image
-                      src={emoji.url}
-                      alt={emoji.prompt}
-                      width={64}
-                      height={64}
-                      className="rounded-lg"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-white hover:text-white hover:bg-white/20"
-                        onClick={() => handleDownload(emoji.url, emoji.prompt)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={`h-8 w-8 text-white hover:text-white hover:bg-white/20 ${
-                          emoji.liked ? 'text-red-500 hover:text-red-500' : ''
-                        }`}
-                        onClick={() => toggleLike(index)}
-                      >
-                        <Heart className={`h-4 w-4 ${emoji.liked ? 'fill-current' : ''}`} />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-400 line-clamp-2">:{emoji.prompt}:</p>
-                  </div>
-                </div>
-              </div>
+              <EmojiCard
+                key={index}
+                emoji={emoji}
+                index={index}
+                onDownload={handleDownload}
+                onToggleLike={toggleLike}
+                getEmojiUrl={getEmojiUrl}
+              />
             ))}
           </div>
         </section>
