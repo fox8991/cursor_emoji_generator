@@ -171,6 +171,12 @@ function useEmojiState() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (!session?.user) {
+        // Clear emoji states on sign out
+        setUserEmojis([]);
+        setRecentEmojis([]);
+        setCurrentEmoji(null);
+      }
     });
 
     return () => {
@@ -258,6 +264,12 @@ export function MainContent() {
 
   const getEmojiUrl = async (storagePath: string): Promise<string> => {
     try {
+      // Add early return if no user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.storage
         .from('emojis')
         .download(storagePath);
