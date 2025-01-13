@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Download, Heart } from "lucide-react";
@@ -95,13 +95,64 @@ interface EmojiData {
 function useEmojiState() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUserEmojis, setIsLoadingUserEmojis] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentEmoji, setCurrentEmoji] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recentEmojis, setRecentEmojis] = useState<GeneratedEmoji[]>([]);
   const [userEmojis, setUserEmojis] = useState<GeneratedEmoji[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [user, setUser] = useState<User | null>(null);
+  const hasFetchedRef = useRef(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const fetchUserEmojis = async (page: number, append = false) => {
+    if (!user) return;
+    
+    try {
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoadingUserEmojis(true);
+      }
+
+      const response = await fetch(`/api/emojis?page=${page}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch emojis');
+      }
+
+      const newEmojis = result.emojis.map((emoji: EmojiData) => ({
+        storagePath: emoji.storage_path,
+        prompt: emoji.prompt,
+        liked: false
+      }));
+
+      setUserEmojis(prev => append ? [...prev, ...newEmojis] : newEmojis);
+      setHasMore(result.hasMore);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error('Error fetching user emojis:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch emojis');
+    } finally {
+      setIsLoadingMore(false);
+      setIsLoadingUserEmojis(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    fetchUserEmojis(1);
+  }, [user]);
+
+  const loadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      fetchUserEmojis(currentPage + 1, true);
+    }
+  };
 
   useEffect(() => {
     const getUser = async () => {
@@ -120,39 +171,11 @@ function useEmojiState() {
     };
   }, [supabase.auth]);
 
-  useEffect(() => {
-    const fetchUserEmojis = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoadingUserEmojis(true);
-        const response = await fetch('/api/emojis');
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch emojis');
-        }
-
-        setUserEmojis(result.emojis.map((emoji: EmojiData) => ({
-          storagePath: emoji.storage_path,
-          prompt: emoji.prompt,
-          liked: false
-        })));
-      } catch (err) {
-        console.error('Error fetching user emojis:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch emojis');
-      } finally {
-        setIsLoadingUserEmojis(false);
-      }
-    };
-
-    fetchUserEmojis();
-  }, [user]);
-
   return {
     isLoading,
     setIsLoading,
     isLoadingUserEmojis,
+    isLoadingMore,
     currentEmoji,
     setCurrentEmoji,
     error,
@@ -161,6 +184,8 @@ function useEmojiState() {
     setRecentEmojis,
     userEmojis,
     setUserEmojis,
+    hasMore,
+    loadMore,
     user,
     router,
   };
@@ -185,6 +210,7 @@ export function MainContent() {
   const {
     isLoading,
     isLoadingUserEmojis,
+    isLoadingMore,
     setIsLoading,
     currentEmoji,
     setCurrentEmoji,
@@ -194,6 +220,8 @@ export function MainContent() {
     setRecentEmojis,
     userEmojis,
     setUserEmojis,
+    hasMore,
+    loadMore,
   } = useEmojiState();
 
   const supabase = createClient();
@@ -375,7 +403,7 @@ export function MainContent() {
         <section className="max-w-4xl mx-auto mt-12">
           <h2 className="text-xl font-semibold mb-4">Your Emojis</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="bg-zinc-900 rounded-xl p-3 animate-pulse">
                 <div className="w-16 h-16 bg-zinc-800 rounded-lg" />
               </div>
@@ -397,6 +425,17 @@ export function MainContent() {
               />
             ))}
           </div>
+          {hasMore && (
+            <div className="mt-8 text-center">
+              <Button 
+                className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? 'Loading...' : 'Load More'}
+              </Button>
+            </div>
+          )}
         </section>
       )}
 

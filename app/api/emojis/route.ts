@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = 8;
+    const offset = (page - 1) * limit;
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -13,12 +18,13 @@ export async function GET() {
       );
     }
 
-    // Fetch user's emojis
-    const { data: emojis, error } = await supabase
+    // Fetch paginated emojis
+    const { data: emojis, error, count } = await supabase
       .from('emojis')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw error;
@@ -26,7 +32,9 @@ export async function GET() {
 
     return NextResponse.json({ 
       success: true, 
-      emojis 
+      emojis,
+      hasMore: count ? offset + limit < count : false,
+      total: count
     });
   } catch (error) {
     console.error("Error fetching emojis:", error);

@@ -96,7 +96,6 @@ There are two main approaches to handle emoji storage access:
      - No way to revoke access
      - Requires image domain configuration
 
-
 # Requirements for user journey
 
 ## After user generates an emoji
