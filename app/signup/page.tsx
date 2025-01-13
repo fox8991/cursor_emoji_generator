@@ -7,13 +7,12 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { getSiteURL } from "@/utils/url";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,45 +24,17 @@ export default function SignUpPage() {
     setError(null);
     setMessage(null);
     setIsLoading(true);
-    
-    // Password validation
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      setIsLoading(false);
-      return;
-    }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      const redirectUrl = getSiteURL();
-      
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
-          ...(name.trim() && {
-            data: {
-              full_name: name.trim(),
-            },
-          }),
+          emailRedirectTo: `${getSiteURL()}/auth/callback`,
         },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      // If identities array is empty, the email exists but was registered with a different provider
-      if (data?.user && data.user.identities?.length === 0) {
-        setMessage('This email is already registered with a different provider. Please try signing in with Google instead.');
-        return;
-      }
+      if (error) throw error;
 
       setMessage("Check your email for a confirmation link.");
     } catch (error) {
@@ -73,90 +44,75 @@ export default function SignUpPage() {
     }
   };
 
+  const handleSignIn = () => {
+    router.push('/login');
+  };
+
   return (
     <div className="flex min-h-screen bg-black text-white">
-      <div className="m-auto w-full max-w-md space-y-8 px-4">
-        <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold">Create an Account</h1>
-          <p className="text-gray-400">Sign up to get started</p>
-        </div>
+      <div className="m-auto w-full max-w-md px-4">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-3xl font-bold text-center text-white">Create an Account</CardTitle>
+            <CardDescription className="text-zinc-300 text-center">Enter your email below to create your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSignUp} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  autoComplete="email"
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                  autoComplete="new-password"
+                />
+              </div>
 
-        <form onSubmit={handleSignUp} className="space-y-4">
-          <div className="space-y-2">
-            <Input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-zinc-900 border-zinc-800"
-              autoComplete="name"
-            />
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-zinc-900 border-zinc-800"
-              autoComplete="email"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-zinc-900 border-zinc-800"
-              autoComplete="new-password"
-            />
-            <Input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="bg-zinc-900 border-zinc-800"
-              autoComplete="new-password"
-            />
-          </div>
+              {error && (
+                <div className="text-red-500 text-sm text-center bg-red-900/20 p-2 rounded">{error}</div>
+              )}
 
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
-          )}
+              {message && (
+                <div className="text-green-500 text-sm text-center bg-green-900/20 p-2 rounded">{message}</div>
+              )}
 
-          {message && (
-            <div className={`text-sm text-center ${
-              message.includes('already registered') 
-                ? 'text-yellow-500' 
-                : 'text-green-500'
-            }`}>
-              {message}
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Creating account..." : "Create account"}
+              </Button>
+            </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-800"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-zinc-900 text-zinc-300">Or continue with</span>
+              </div>
             </div>
-          )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? "Creating account..." : "Sign up"}
-          </Button>
-        </form>
+            <GoogleSignInButton />
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-800"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-black text-gray-400">Or continue with</span>
-          </div>
-        </div>
-
-        <GoogleSignInButton />
-
-        <div className="text-center">
-          <Button
-            variant="link"
-            className="text-gray-400 hover:text-white"
-            onClick={() => router.push('/login')}
-          >
-            Already have an account? Sign in
-          </Button>
-        </div>
+            <div className="text-center mt-4">
+              <Button
+                variant="link"
+                className="text-zinc-300 hover:text-white"
+                onClick={handleSignIn}
+              >
+                Already have an account? Sign in
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
