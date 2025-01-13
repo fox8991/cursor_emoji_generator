@@ -49,9 +49,16 @@ function EmojiCard({ emoji, onDownload, onToggleLike, getEmojiUrl }: EmojiCardPr
 
   if (isLoading) {
     return (
-      <Card className="bg-zinc-800/50 rounded-xl p-4 animate-pulse">
-        <div className="w-full h-24 bg-zinc-700 rounded-lg" />
-      </Card>
+      <div className="bg-zinc-900 rounded-xl p-3 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-shrink-0">
+            <div className="w-16 h-16 bg-zinc-700 rounded-lg" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="h-4 bg-zinc-700 rounded w-3/4" />
+          </div>
+        </div>
+      </div>
     );
   }
 
