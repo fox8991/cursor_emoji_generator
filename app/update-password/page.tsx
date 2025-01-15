@@ -83,7 +83,7 @@ export default function UpdatePasswordPage() {
                   placeholder="New Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-transparent border-none text-lg placeholder-zinc-500 focus-visible:ring-0"
+                  className="bg-zinc-800/50 border border-zinc-700 text-lg placeholder-zinc-500 focus-visible:ring-purple-500 focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:border-purple-500"
                   autoComplete="new-password"
                 />
                 <Input
@@ -91,7 +91,7 @@ export default function UpdatePasswordPage() {
                   placeholder="Confirm New Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-transparent border-none text-lg placeholder-zinc-500 focus-visible:ring-0"
+                  className="bg-zinc-800/50 border border-zinc-700 text-lg placeholder-zinc-500 focus-visible:ring-purple-500 focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:border-purple-500"
                   autoComplete="new-password"
                 />
               </div>
