@@ -2,15 +2,15 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card"
-import { Download, Heart, ArrowRight } from "lucide-react";
+import { Download, Heart } from "lucide-react";
 import Image from "next/image";
 import { UserMenu } from "@/components/user-menu";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input";
 
 interface GeneratedEmoji {
   storagePath: string;
@@ -128,7 +128,6 @@ function useEmojiState() {
   const [currentPage, setCurrentPage] = useState(1);
   const [user, setUser] = useState<User | null>(null);
   const hasFetchedRef = useRef(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
   const fetchUserEmojis = useCallback(async (page: number, append = false) => {
@@ -196,8 +195,6 @@ function useEmojiState() {
         setUserEmojis([]);
         setRecentEmojis([]);
         setCurrentEmoji(null);
-        // Reset the form
-        formRef.current?.reset();
       }
     });
 
@@ -222,7 +219,6 @@ function useEmojiState() {
     loadMore,
     user,
     router,
-    formRef,
   };
 }
 
@@ -258,7 +254,6 @@ export function MainContent() {
     loadMore,
     user,
     router,
-    formRef,
   } = useEmojiState();
 
   const supabase = createClient();
@@ -395,15 +390,6 @@ export function MainContent() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const prompt = formData.get('prompt') as string;
-    if (prompt.trim()) {
-      handleGenerateEmoji(prompt.trim());
-    }
-  };
-
   return (
     <main className="container mx-auto px-4 py-16 min-h-screen">
       <div className="max-w-3xl mx-auto text-center space-y-6 mb-16">
@@ -413,23 +399,29 @@ export function MainContent() {
         </p>
       </div>
 
-      <Card className="max-w-xl mx-auto mb-16 bg-zinc-800/50 border-zinc-700">
+      <Card className="max-w-xl mx-auto mb-16 bg-transparent border-0">
         <CardContent className="p-2">
-          <form ref={formRef} onSubmit={handleSubmit} className="flex items-center">
-            <Input
-              name="prompt"
-              className="flex-grow bg-transparent border-none text-lg placeholder-zinc-500 focus-visible:ring-0 text-white caret-white"
-              placeholder="Describe your emoji..."
-              disabled={isLoading}
-            />
-            <Button 
-              type="submit" 
-              className="ml-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Generating...' : <ArrowRight className="h-5 w-5" />}
-            </Button>
-          </form>
+          <PlaceholdersAndVanishInput
+            placeholders={[
+              "happy cat with hearts",
+              "sleepy dog with Zzz",
+              "dancing penguin",
+              "rainbow unicorn",
+              "ninja panda",
+              "pizza with melting cheese",
+              "superhero avocado",
+              "coffee cup with steam"
+            ]}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = e.currentTarget.querySelector('input[name="prompt"]') as HTMLInputElement;
+              if (!input) return;
+              const prompt = input.value;
+              if (prompt?.trim()) {
+                handleGenerateEmoji(prompt.trim());
+              }
+            }}
+          />
           {!user && (
             <p className="text-sm text-zinc-400 mt-2 text-center">
               Please <Button variant="link" className="text-purple-400 p-0 h-auto" onClick={() => router.push('/login')}>sign in</Button> to generate emojis
