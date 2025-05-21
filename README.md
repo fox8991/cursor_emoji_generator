@@ -1,5 +1,34 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Project Overview
+
+The Next.js Emoji Generator is an application where users can provide a text prompt to generate unique emojis. The emoji generation is powered by an AI model hosted on Replicate. Users can sign up, sign in, view their generated emojis, and see public emojis created by others.
+
+## Key Features & Technology Stack
+
+### Core Functionality
+- **Emoji Generation:** Users input text prompts to create custom emojis.
+- **User Authentication:** Secure sign-up and sign-in using email/password or Google OAuth.
+- **Emoji Display:** View a gallery of personally generated emojis and a separate gallery for public emojis.
+- **Interaction:** Download generated emojis and "like" emojis.
+
+### Technology Stack
+- **Frontend:**
+    - [Next.js](https://nextjs.org/) (App Router)
+    - [TypeScript](https://www.typescriptlang.org/)
+    - [Tailwind CSS](https://tailwindcss.com/)
+    - [Shadcn UI](https://ui.shadcn.com/)
+    - [Lucide React](https://lucide.dev/) (for icons)
+- **Backend:**
+    - Next.js (API Routes)
+    - [Supabase](https://supabase.com/):
+        - **Authentication:** Manages user sign-up, sign-in, and sessions.
+        - **Database:** Stores emoji metadata (prompts, storage paths, likes) and user-like relationships.
+        - **Storage:** Securely stores the generated emoji image files.
+- **AI / LLM:**
+    - [Replicate](https://replicate.com/): Hosts the AI model for emoji generation.
+        - Model: `fofr/sdxl-emoji`
+
 ## Getting Started
 
 First, run the development server:
